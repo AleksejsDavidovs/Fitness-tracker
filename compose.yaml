@@ -1,0 +1,13 @@
+services:
+  api:
+    build: .
+    ports:
+      - "8002:8000"
+    volumes:
+      - ./database_practice.py:/app/database_practice.py
+      - ./data:/app/data
+    environment:
+      - DATABASE_PATH=/app/data/practice.db
+      - WATCHFILES_FORCE_POLLING=true
+    command: python -m uvicorn database_practice:app --host 0.0.0.0 --port 8000 --reload
+    restart: unless-stopped
