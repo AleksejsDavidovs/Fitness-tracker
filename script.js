@@ -1,4 +1,4 @@
-
+const API_URL = "/api";
 const exerciseInput = document.getElementById("exerciseInput");
 const weightInput = document.getElementById("weightInput");
 const addButton = document.getElementById("addButton");
@@ -73,7 +73,7 @@ function renderWorkout() {
         exerciseDeleteButton.className = "delete-button";
         exerciseDeleteButton.addEventListener("click", async function() {
             const response = await fetch(
-                `http://127.0.0.1:8000/sets/${exerciseData.id}`,
+                `${API_URL}/sets/${exerciseData.id}`,
                 {
                     method: "DELETE"
                 }
@@ -103,7 +103,7 @@ function renderWorkout() {
 
 async function loadBodyWeights() {
     const response = await fetch(
-        "http://127.0.0.1:8000/body-weights"
+        `${API_URL}/body-weights`
     );
                 
     if (!response.ok) {
@@ -125,9 +125,7 @@ function renderBodyWeights() {
         const weightElement = document.createElement("p");
         const deleteButton = document.createElement("button");
 
-        const date = new Date(
-            weightData.measured_at.replace(" ", "T") + "Z"
-        );
+        const date = new Date(weightData.measured_at);
 
         const formattedDate = date.toLocaleDateString("en-GB", {
             day: "2-digit",
@@ -143,7 +141,7 @@ function renderBodyWeights() {
 
         deleteButton.addEventListener("click", async function () {
             const response = await fetch(
-                `http://127.0.0.1:8000/body-weights/${weightData.id}`,
+                `${API_URL}/body-weights/${weightData.id}`,
                 {
                     method: "DELETE"
                 }
@@ -168,9 +166,7 @@ function renderBodyWeightChart() {
     const weights = [];
 
     for (const weightData of bodyWeights) {
-        const date = new Date(
-            weightData.measured_at.replace(" ", "T") + "Z"
-        );
+        const date = new Date(weightData.measured_at);
     
         labels.push(
             date.toLocaleDateString("en-GB", {
@@ -258,7 +254,7 @@ addWeightButton.addEventListener("click", async function () {
     };
 
     const response = await fetch(
-        "http://127.0.0.1:8000/body-weights",
+        `${API_URL}/body-weights`,
         {
             method: "POST",
             headers: {
@@ -299,15 +295,26 @@ cancelButton.addEventListener("click", function() {
 
 
 
+
 async function loadWorkout() {
-    const response = await fetch("http://127.0.0.1:8000/sets");
-    const data = await response.json();
+    try {
+        const response = await fetch(`${API_URL}/sets`);
 
-    workout = data;
+        if (!response.ok) {
+            throw new Error(`HTTP error: ${response.status}`);
+        }
 
-    renderWorkout();
-    fillExerciseSelect();
+        workout = await response.json();
+
+        renderWorkout();
+        fillExerciseSelect();
+
+    } catch (error) {
+        console.error("Could not load workouts:", error);
+        formError.textContent = "Could not connect to server";
+    }
 }
+
 
 addButton.addEventListener("click", async function () {
     formError.textContent = "";
@@ -343,11 +350,11 @@ addButton.addEventListener("click", async function () {
         reps: Number(repsInput.value)
     };
 
-    let url = "http://127.0.0.1:8000/sets";
+    let url = `${API_URL}/sets`;
     let method = "POST";
 
     if (editingId !== null) {
-        url = `http://127.0.0.1:8000/sets/${editingId}`;
+        url = `${API_URL}/sets/${editingId}`;
         method = "PUT";
     }
 

@@ -1,9 +1,10 @@
 import os
-import sqlite3
+import psycopg
 DATABASE_PATH = os.getenv("DATABASE_PATH", "practice.db")
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
-from pydantic import BaseModel
+from models import ExerciseCreate, SetCreate, BodyWeightCreate
+from database import get_db_connection
 
 app = FastAPI()
 app.add_middleware(
@@ -13,268 +14,327 @@ app.add_middleware(
     allow_headers=["*"]
 )
 
-connection = sqlite3.connect(DATABASE_PATH)
-cursor = connection.cursor()
-
-class SetCreate(BaseModel):
-    exercise: str
-    weight: float
-    reps: int
-
-class BodyWeightCreate(BaseModel):
-    weight: float
-
-
-cursor.execute("""
-    CREATE TABLE IF NOT EXISTS sets(
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
-        exercise TEXT NOT NULL,
-        weight REAL NOT NULL,
-        reps INTEGER NOT NULL
-    )               
-""")
-
-cursor.execute("PRAGMA table_info(sets)")
-columns = cursor.fetchall()
-
-column_names = []
-
-for column in columns:
-    column_names.append(column[1])
-
-if "performed_at" not in column_names:
-    cursor.execute("""
-        ALTER TABLE sets
-        ADD COLUMN performed_at TEXT
-    """)
-
-cursor.execute("""
-    UPDATE sets
-    SET performed_at = CURRENT_TIMESTAMP
-    WHERE performed_at IS NULL
-""")
-
-connection.commit()
-
-
-cursor.execute("""
-    CREATE TABLE IF NOT EXISTS body_weights (
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
-        weight REAL NOT NULL,
-        measured_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
-    )
-""")
-
-connection.commit()
-connection.close()
 
 @app.post("/sets")
 def create_set(set_data: SetCreate):
-    connection = sqlite3.connect(DATABASE_PATH)
+    connection = get_db_connection()
 
-    cursor = connection.cursor()
+    try:
+        with connection.cursor() as cursor:
+            cursor.execute("""
+                INSERT INTO sets (exercise, weight, reps, performed_at)
+                VALUES (%s, %s, %s, CURRENT_TIMESTAMP)
+                RETURNING id
+                """,
+                (
+                    set_data.exercise,
+                    set_data.weight,
+                    set_data.reps
+                )
+            )
+            set_id = cursor.fetchone()[0]
+            connection.commit()
 
-    cursor.execute("""
-        INSERT INTO sets (exercise, weight, reps, performed_at)
-        VALUES (?, ?, ?, CURRENT_TIMESTAMP)
-        """,
-        (
-            set_data.exercise,
-            set_data.weight,
-            set_data.reps
-        )
-    )
-    
-    connection.commit()
+            return {
+                "id": set_id,
+                "exercise": set_data.exercise,
+                "weight": set_data.weight,
+                "reps": set_data.reps
+            }
+    finally:
+         connection.close()
 
-    set_id = cursor.lastrowid
-    connection.close()
 
-    return {
-        "id": set_id,
-        "exercise": set_data.exercise,
-        "weight": set_data.weight,
-        "reps": set_data.reps
-    }
-
-@app.post("/body-weights")
+@app.post("/body-weights", status_code=201)
 def create_body_weight(weight_data: BodyWeightCreate):
-    connection = sqlite3.connect(DATABASE_PATH)
+    connection = get_db_connection()
 
-    cursor = connection.cursor()
+    try:
+        with connection.cursor() as cursor:
+            cursor.execute("""
+                INSERT INTO body_weights (weight)
+                VALUES (%s)
+                RETURNING id, weight, measured_at
+            """, (weight_data.weight,))
 
-    cursor.execute("""
-        INSERT INTO body_weights (weight)
-        VALUES (?)
-    """,
-    (weight_data.weight,)
-    )
+            row = cursor.fetchone()
 
-    connection.commit()
-    weight_id = cursor.lastrowid
+        connection.commit()
 
-    cursor.execute("""
-        SELECT id, weight, measured_at
-        FROM body_weights
-        WHERE id = ?
-    """,
-    (weight_id,)
-    )
-
-    row = cursor.fetchone()
-    connection.close()
-
-    return {
-        "id": row[0],
-        "weight": row[1],
-        "measured_at": row[2]
-    }
-
-@app.get("/body-weights")
-def get_body_weights():
-    connection = sqlite3.connect(DATABASE_PATH)
-
-    cursor = connection.cursor()
-
-    cursor.execute("""
-        SELECT id, weight, measured_at
-        FROM body_weights
-        ORDER BY measured_at ASC
-    """)
-
-    rows = cursor.fetchall()
-    result = []
-
-    for row in rows:
-        weight_data = {
+        return {
             "id": row[0],
             "weight": row[1],
             "measured_at": row[2]
         }
 
-        result.append(weight_data)
+    finally:
+        connection.close()
 
-    connection.close()
 
-    return result
+@app.get("/body-weights")
+def get_body_weights():
+    connection = get_db_connection()
+
+    try:
+        with connection.cursor() as cursor:
+            cursor.execute("""
+                SELECT id, weight, measured_at
+                FROM body_weights
+                ORDER BY measured_at ASC
+            """)
+            rows = cursor.fetchall()
+
+        result = []
+
+        for row in rows:
+            result.append({
+                "id": row[0],
+                "weight": row[1],
+                "measured_at": row[2]
+            })
+
+        return result
+
+    finally:
+        connection.close()
+
+
+    
+
 
 @app.delete("/body-weights/{weight_id}")
 def delete_body_weight(weight_id: int):
-    connection = sqlite3.connect(DATABASE_PATH)
+    connection = get_db_connection()
 
-    cursor = connection.cursor()
+    try:
+        with connection.cursor() as cursor:
+            cursor.execute("""
+                DELETE FROM body_weights
+                WHERE id = %s
+            """, (weight_id,))
 
-    cursor.execute("""
-        DELETE FROM body_weights
-        WHERE id = ?
-    """,
-    (weight_id,)
-    )
+            deleted_count = cursor.rowcount
 
-    deleted_count = cursor.rowcount
+        if deleted_count == 0:
+            raise HTTPException(
+                status_code=404,
+                detail="Weight record not found"
+            )
 
-    connection.commit()
-    connection.close()
+        connection.commit()
 
-    if deleted_count == 0:
-        raise HTTPException(
-            status_code=404,
-            detail="Weight record not found"
-        )
+        return {
+            "deleted_id": weight_id
+        }
 
-    return {
-        "deleted_id": weight_id
-    }
+    finally:
+        connection.close()
+
+
 
 @app.delete("/sets/{set_id}")
 def delete_set(set_id: int):
-    connection = sqlite3.connect(DATABASE_PATH)
+    connection = get_db_connection()
 
-    cursor = connection.cursor()
+    try:
+        with connection.cursor() as cursor:
+            cursor.execute("""
+                DELETE FROM sets
+                WHERE id = %s
+            """, (set_id,))
 
-    cursor.execute("""
-    DELETE FROM sets
-    WHERE id = ?
-    """,
-    (set_id,)
-    )
-    deleted_count = cursor.rowcount
-    connection.commit()
-    connection.close()
-    if deleted_count == 0:
-        raise HTTPException(
-            status_code=404,
-            detail="Set not found"
-        )
-    
-    return {
+            deleted_count = cursor.rowcount
+
+        if deleted_count == 0:
+            raise HTTPException(
+                status_code=404,
+                detail="Set not found"
+            )
+
+        connection.commit()
+
+        return {
             "deleted_id": set_id
-    }
+        }
+
+    finally:
+        connection.close()
+
 
 @app.put("/sets/{set_id}")
 def update_set(set_id: int, set_data: SetCreate):
-    connection = sqlite3.connect(DATABASE_PATH)
-
-    cursor = connection.cursor()
-    cursor.execute("""
-    UPDATE sets
-    SET exercise = ?, weight = ?, reps = ?
-    WHERE id = ?
-    """,
-    (set_data.exercise,
-     set_data.weight,
-     set_data.reps,
-     set_id
-     )
-    )
-    updated_count = cursor.rowcount
-    connection.commit()
-    connection.close()
-    if updated_count == 0:
-        raise HTTPException(
-            status_code=404,
-            detail="No updated sets"
-        )
-    return {
-            "id": set_id,
-            "exercise": set_data.exercise,
-            "weight": set_data.weight,
-            "reps": set_data.reps
-    }
+    connection = get_db_connection()
+    try:
+        with connection.cursor() as cursor:
+            cursor.execute("""
+            UPDATE sets
+            SET exercise = %s, weight = %s, reps = %s
+            WHERE id = %s
+            """,
+            (set_data.exercise,
+            set_data.weight,
+            set_data.reps,
+            set_id
+            )
+            )
+            updated_count = cursor.rowcount
+            connection.commit()
+            
+            if updated_count == 0:
+                raise HTTPException(
+                    status_code=404,
+                    detail="No updated sets"
+                )
+            return {
+                    "id": set_id,
+                    "exercise": set_data.exercise,
+                    "weight": set_data.weight,
+                    "reps": set_data.reps
+            }
+    finally:
+        connection.close()
     
 
 
 
 @app.get("/sets")
 def get_sets():
-    connection = sqlite3.connect(DATABASE_PATH)
+    connection = get_db_connection()
+    try:
+        with connection.cursor() as cursor:
+            cursor.execute("""
+                SELECT id, exercise, weight, reps, performed_at
+                FROM sets
+                ORDER BY performed_at ASC
+            """)
+
+            rows = cursor.fetchall()
+        result = []
+
+        for row in rows:
+            result.append({
+                "id": row[0],
+                "exercise": row[1],
+                "weight": row[2],
+                "reps": row[3],
+                "performed_at": row[4].isoformat() if row[4] else None
+            })
+
+        return result
+    finally:
+        connection.close()
+
+
+@app.get("/exercises")
+def get_exercises():
+    connection = get_db_connection()
 
     cursor = connection.cursor()
 
     cursor.execute("""
-        SELECT id, exercise, weight, reps, performed_at
-        FROM sets
-        ORDER BY performed_at ASC
+        SELECT id, name, muscle_group
+        FROM exercises
+        ORDER BY id
     """)
 
     rows = cursor.fetchall()
-    result = []
-
-    for row in rows:
-        set_data = {
-            "id": row[0],
-            "exercise": row[1],
-            "weight": row[2],
-            "reps": row[3],
-            "performed_at": row[4]
-        }
-
-        result.append(set_data)  
 
     connection.close()
 
-    return result  
+    exercises = []
 
-@app.get("/hello")
-def hello():
-    return {"message": "Docker Live Reload WORKS!"}
+    for row in rows:
+        exercises.append({
+            "id": row[0],
+            "name": row[1],
+            "muscle_group": row[2]
+        })
+
+    return exercises
+
+
+@app.post("/exercises", status_code=201)
+def create_exercise(exercise: ExerciseCreate):
+    connection = get_db_connection()
+    try:
+        with connection.cursor() as cursor:
+            cursor.execute("""
+                INSERT INTO exercises (name, muscle_group)
+                VALUES (%s, %s)
+                RETURNING id
+            """, (exercise.name, exercise.muscle_group))
+
+            exercise_id = cursor.fetchone()[0]
+
+        connection.commit()
+
+        return {
+            "id": exercise_id,
+            "name": exercise.name,
+            "muscle_group": exercise.muscle_group
+        }
+
+    finally:
+        connection.close()
+
+
+
+@app.put("/exercises/{exercise_id}")
+def update_exercise(exercise_id: int, exercise: ExerciseCreate):
+    connection = get_db_connection()
+
+    try:
+        cursor = connection.cursor()
+
+        cursor.execute("""
+            UPDATE exercises
+            SET name = %s, muscle_group = %s
+            WHERE id = %s
+        """, (exercise.name, exercise.muscle_group, exercise_id))
+
+        updated_count = cursor.rowcount
+
+        connection.commit()
+        cursor.close()
+
+        if updated_count == 0:
+            raise HTTPException(
+                status_code=404,
+                detail="Exercise not found"
+            )
+
+        return {
+            "id": exercise_id,
+            "name": exercise.name,
+            "muscle_group": exercise.muscle_group
+        }
+
+    finally:
+        connection.close()
+
+
+@app.delete("/exercises/{exercise_id}")
+def delete_exercise(exercise_id: int):
+    connection = get_db_connection()
+
+    try:
+        with connection.cursor() as cursor:
+            cursor.execute("""
+                DELETE FROM exercises
+                WHERE id = %s
+            """, (exercise_id,))
+
+            deleted_count = cursor.rowcount
+
+        if deleted_count == 0:
+            raise HTTPException(
+                status_code=404,
+                detail="Exercise not found"
+            )
+
+        connection.commit()
+
+        return {"deleted_id": exercise_id}
+
+    finally:
+        connection.close()

@@ -1,0 +1,31 @@
+
+name: Fitness Tracker Tests
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Download repository
+        uses: actions/checkout@v4
+
+      - name: Start test database and API
+        run: docker compose --profile testing up -d --build db api-test
+
+      - name: Build test image
+        run: docker compose --profile testing build tests
+
+      - name: Run pytest
+        run: docker compose --profile testing run --rm tests
+
+      - name: Show logs if failed
+        if: failure()
+        run: docker compose --profile testing logs --tail=100
+
+      - name: Stop containers
+        if: always()
+        run: docker compose --profile testing down

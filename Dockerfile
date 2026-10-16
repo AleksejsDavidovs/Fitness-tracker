@@ -3,9 +3,9 @@ FROM python:3.12-slim
 
 WORKDIR /app
 
-RUN pip install --no-cache-dir fastapi "uvicorn[standard]"
+RUN pip install --no-cache-dir fastapi "uvicorn[standard]" "psycopg[binary]"
 
-COPY database_practice.py .
+COPY . .
 
 EXPOSE 8000
 
