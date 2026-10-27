@@ -1,8 +1,10 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
     <head>
         <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1">
         <title>My Gym</title>
+        <meta name="description" content="Log your gym sets and track your body weight.">
         <link rel="stylesheet" href="style.css">
     </head>
     <body>
@@ -11,66 +13,72 @@
                 <button class="menu-button active" data-page="trackerPage">
                     Tracker
                 </button>
-            
+
                 <button class="menu-button" data-page="statisticsPage">
                     Statistics
                 </button>
             </nav>
-            
+
             <section id="trackerPage" class="page">
                 <h1>Workout Tracker</h1>
                 <p>Add your first exercise</p>
-            
-                <input id="exerciseInput" type="text" placeholder="exercise">
-                <input id="weightInput" type="number" placeholder="weight">
-                <input id="repsInput" type="number" placeholder="reps">
-            
-                <button id="addButton">Add exercises</button>
-                <button id="cancelButton" type="button">Cancel</button>
+
+                <div class="form-card">
+                    <input id="exerciseInput" type="text" placeholder="Exercise" aria-label="Exercise">
+                    <input id="weightInput" type="number" placeholder="Weight, kg" aria-label="Weight, kg">
+                    <input id="repsInput" type="number" placeholder="Reps" aria-label="Reps">
+
+                    <div class="form-actions">
+                        <button id="addButton">Add exercises</button>
+                        <button id="cancelButton" type="button">Cancel</button>
+                    </div>
+                </div>
+
                 <p id="formError" class="error-message"></p>
                 <div id="exerciseContainer"></div>
             </section>
-            
+
             <section id="statisticsPage" class="page hidden">
                 <h1>Statistics</h1>
                 <div class="statistics-card">
                     <h2>Body weight</h2>
-            
+
                     <div class="weight-form">
                         <input
                             id="bodyWeightInput"
                             type="number"
                             step="0.1"
                             placeholder="Body weight, kg"
+                            aria-label="Body weight, kg"
                         >
-            
+
                         <button id="addWeightButton">
                             Save weight
                         </button>
                     </div>
-            
+
                     <p id="weightError" class="error-message"></p>
-            
+
                     <div class="chart-container">
-                        <canvas id="bodyWeightChart"></canvas>
+                        <canvas id="bodyWeightChart" aria-label="Body weight chart" role="img"></canvas>
                     </div>
-            
+
                     <div id="weightHistory"></div>
                 </div>
-            
+
                 <div class="statistics-card">
                     <h2>Exercise progress</h2>
-            
-                    <select id="exerciseSelect">
+
+                    <select id="exerciseSelect" aria-label="Exercise">
                         <option value="">Select exercise</option>
                     </select>
-            
-                    <p>Your exercise graph will be here.</p>
+
+                    <p class="muted-note">Your exercise graph will be here.</p>
                 </div>
             </section>
-           
+
         </main>
-        <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+        <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
         <script src="script.js"></script>
     </body>
 </html>

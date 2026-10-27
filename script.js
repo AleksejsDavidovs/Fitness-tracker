@@ -46,7 +46,8 @@ function renderWorkout() {
     exerciseContainer.textContent = "";
 
     for (const exerciseData of workout) {
-        const exerciseElement = document.createElement("p");
+        const exerciseElement = document.createElement("div");
+        exerciseElement.className = "set-row";
 
         const exerciseEditButton = document.createElement("button");
         exerciseEditButton.textContent = "Edit";
@@ -90,14 +91,31 @@ function renderWorkout() {
         })
 
 
-        exerciseElement.textContent =
-            `${exerciseData.exercise}: ${exerciseData.weight} kg x ${exerciseData.reps} reps `;
+        const exerciseInfo = document.createElement("div");
+        exerciseInfo.className = "set-info";
+
+        const exerciseName = document.createElement("span");
+        exerciseName.className = "set-name";
+        exerciseName.textContent = exerciseData.exercise;
+
+        const exerciseMeta = document.createElement("span");
+        exerciseMeta.className = "set-meta";
+        exerciseMeta.textContent = `${exerciseData.weight} kg × ${exerciseData.reps} reps`;
+
+        exerciseInfo.appendChild(exerciseName);
+        exerciseInfo.appendChild(exerciseMeta);
+
+        const exerciseActions = document.createElement("div");
+        exerciseActions.className = "set-actions";
 
         exerciseDeleteButton.textContent = "Delete";
 
-        exerciseElement.appendChild(exerciseDeleteButton);
+        exerciseActions.appendChild(exerciseEditButton);
+        exerciseActions.appendChild(exerciseDeleteButton);
+
+        exerciseElement.appendChild(exerciseInfo);
+        exerciseElement.appendChild(exerciseActions);
         exerciseContainer.appendChild(exerciseElement);
-        exerciseElement.appendChild(exerciseEditButton);
     }
 }
 
@@ -122,7 +140,8 @@ function renderBodyWeights() {
     weightHistory.textContent = "";
 
     for (const weightData of bodyWeights) {
-        const weightElement = document.createElement("p");
+        const weightElement = document.createElement("div");
+        weightElement.className = "weight-record";
         const deleteButton = document.createElement("button");
 
         const date = new Date(weightData.measured_at);
@@ -134,7 +153,7 @@ function renderBodyWeights() {
         });
         
         weightElement.textContent =
-            `${formattedDate} — ${weightData.weight} kg `;
+            `${formattedDate} — ${weightData.weight} kg`;
 
         deleteButton.textContent = "Delete";
         deleteButton.className = "delete-button";
@@ -159,6 +178,11 @@ function renderBodyWeights() {
         weightHistory.appendChild(weightElement);
     }
     renderBodyWeightChart();
+}
+
+// Reads a colour from the CSS tokens, so the chart matches the page (and dark mode)
+function cssVar(name) {
+    return getComputedStyle(document.documentElement).getPropertyValue(name).trim();
 }
 
 function renderBodyWeightChart() {
@@ -192,10 +216,12 @@ function renderBodyWeightChart() {
                 {
                     label: "Body weight, kg",
                     data: weights,
-                    borderColor: "#22c55e",
-                    backgroundColor: "#22c55e",
+                    borderColor: cssVar("--color-accent"),
+                    backgroundColor: cssVar("--color-accent"),
                     borderWidth: 3,
-                    tension: 0.25
+                    pointRadius: 4,
+                    pointHoverRadius: 6,
+                    tension: 0.35
                 }
             ]
         },
@@ -204,9 +230,22 @@ function renderBodyWeightChart() {
             responsive: true,
             maintainAspectRatio: false,
 
+            plugins: {
+                legend: {
+                    display: false
+                }
+            },
+
             scales: {
+                x: {
+                    grid: { display: false },
+                    ticks: { color: cssVar("--color-muted") }
+                },
                 y: {
-                    beginAtZero: false
+                    beginAtZero: false,
+                    border: { display: false },
+                    grid: { color: cssVar("--color-rule") },
+                    ticks: { color: cssVar("--color-muted") }
                 }
             }
         }
