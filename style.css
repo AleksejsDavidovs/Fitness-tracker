@@ -457,3 +457,276 @@ button:disabled {
         transition-duration: 0.01ms !important;
     }
 }
+
+.exercise-manager,
+.workout-form {
+    width: 100%;
+    box-sizing: border-box;
+    margin-bottom: 24px;
+}
+
+.exercise-manager h2,
+.workout-form h2 {
+    font-size: 18px;
+    margin-bottom: 16px;
+}
+
+.exercise-manager-fields,
+.workout-fields {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 12px;
+    margin-bottom: 16px;
+}
+
+.exercise-manager-fields > *,
+.workout-fields > * {
+    width: 100%;
+    min-width: 0;
+    box-sizing: border-box;
+}
+
+.exercise-manager input,
+.exercise-manager select,
+.workout-form input,
+.workout-form select {
+    background: #27292d;
+    color: #f5f5f5;
+    border: 1px solid #35373b;
+    border-radius: 12px;
+    padding: 14px 16px;
+    font-size: 14px;
+    min-height: 48px;
+}
+
+#createExerciseButton {
+    background: #27292d;
+    color: #f5f5f5;
+    border: none;
+    border-radius: 12px;
+    padding: 12px;
+    cursor: pointer;
+}
+
+#createExerciseButton:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+@media (max-width: 600px) {
+    .exercise-manager-fields,
+    .workout-fields {
+        grid-template-columns: 1fr;
+    }
+}
+
+/* Main form layout */
+.form-card {
+    display: flex;
+    flex-direction: column;
+    gap: 28px;
+    align-items: stretch;
+}
+
+/* Two sections stacked vertically */
+.exercise-manager,
+.workout-form {
+    width: 100%;
+    min-width: 0;
+    margin: 0;
+}
+
+/* Fields inside each section */
+.exercise-manager-fields,
+.workout-fields {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 12px;
+    width: 100%;
+}
+
+/* Prevent fields from overflowing */
+.exercise-manager-fields > *,
+.workout-fields > * {
+    width: 100%;
+    min-width: 0;
+    box-sizing: border-box;
+}
+
+/* Mobile layout */
+@media (max-width: 600px) {
+    .exercise-manager-fields,
+    .workout-fields {
+        grid-template-columns: 1fr;
+    }
+}
+
+#exerciseCatalog[hidden] {
+    display: none !important;
+}
+
+/* Toggle exercise catalog */
+#toggleExerciseCatalog {
+    background: #292b2f;
+    color: #f5f5f5;
+    border: none;
+    border-radius: 12px;
+    padding: 12px 18px;
+    font-size: 14px;
+    cursor: pointer;
+    margin-bottom: 12px;
+}
+
+#toggleExerciseCatalog:hover {
+    background: #36383d;
+}
+
+/* Exercise catalog */
+#exerciseCatalog {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    margin-top: 8px;
+    margin-bottom: 24px;
+}
+
+#exerciseCatalog[hidden] {
+    display: none !important;
+}
+
+/* Individual exercise */
+.exercise-item {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 12px 14px;
+    background: #242629;
+    border-radius: 12px;
+}
+
+/* Exercise name and muscle group */
+.exercise-item span {
+    flex: 1;
+    min-width: 0;
+    overflow-wrap: anywhere;
+    font-size: 14px;
+}
+
+/* Edit and Delete buttons */
+.exercise-item button {
+    flex-shrink: 0;
+    width: auto;
+    padding: 8px 14px;
+    background: #34363b;
+    color: #f5f5f5;
+    border: none;
+    border-radius: 10px;
+    cursor: pointer;
+    font-size: 13px;
+}
+
+.exercise-item button:hover {
+    background: #44464b;
+}
+
+.exercise-item button:last-child {
+    color: #ff6868;
+}
+
+@media (max-width: 480px) {
+    .exercise-item {
+        flex-wrap: wrap;
+    }
+
+    .exercise-item span {
+        flex-basis: 100%;
+    }
+}
+
+#cancelExerciseEdit {
+    background: #34363b;
+    color: #f5f5f5;
+    border: 1px solid #45474d;
+    border-radius: 12px;
+    padding: 12px 18px;
+    font-size: 14px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: background 0.2s ease;
+}
+
+#cancelExerciseEdit:hover {
+    background: #45474d;
+}
+
+#cancelExerciseEdit[hidden] {
+    display: none !important;
+}
+
+.modal-overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.7);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 1000;
+    padding: 20px;
+}
+
+.modal-overlay[hidden] {
+    display: none !important;
+}
+
+.modal-content {
+    width: 100%;
+    max-width: 400px;
+    box-sizing: border-box;
+    padding: 28px;
+    border-radius: 20px;
+    background: #232528;
+    color: #f5f5f5;
+    box-shadow: 0 20px 60px rgba(0,0,0,0.4);
+}
+
+.modal-content h2 {
+    font-size: 22px;
+    margin: 0 0 12px;
+}
+
+.modal-content p {
+    color: #a4a5aa;
+    line-height: 1.5;
+    margin-bottom: 24px;
+}
+
+.modal-actions {
+    display: flex;
+    justify-content: flex-end;
+    gap: 10px;
+}
+
+.modal-actions button {
+    border: none;
+    border-radius: 12px;
+    padding: 12px 20px;
+    cursor: pointer;
+    font-size: 14px;
+    color: white;
+}
+
+#cancelDeleteButton {
+    background: #34363b;
+}
+
+#confirmDeleteButton {
+    background: #ef554a;
+}
+
+#cancelDeleteButton:hover {
+    background: #45474d;
+}
+
+#confirmDeleteButton:hover {
+    background: #d9443a;
+}

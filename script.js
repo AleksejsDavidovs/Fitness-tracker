@@ -11,6 +11,19 @@ const weightError = document.getElementById("weightError");
 const weightHistory = document.getElementById("weightHistory");
 const bodyWeightCanvas = document.getElementById("bodyWeightChart");
 const exerciseSelect = document.getElementById("exerciseSelect")
+const newExerciseName = document.getElementById("newExerciseName");
+const newMuscleGroup = document.getElementById("newMuscleGroup");
+const createExerciseButton = document.getElementById("createExerciseButton");
+const exerciseError = document.getElementById("exerciseError");
+const exerciseCatalog = document.getElementById("exerciseCatalog");
+const toggleExerciseCatalog = document.getElementById("toggleExerciseCatalog");
+const cancelExerciseEdit = document.getElementById("cancelExerciseEdit");
+const deleteModal = document.getElementById("deleteModal");
+const deleteModalMessage = document.getElementById("deleteModalMessage");
+const cancelDeleteButton = document.getElementById("cancelDeleteButton");
+const confirmDeleteButton = document.getElementById("confirmDeleteButton");
+
+let exerciseToDelete = null;
 
 let bodyWeightChart = null;
 
@@ -20,6 +33,7 @@ console.log(exerciseInput, weightInput, addButton, exerciseContainer);
 
 let workout = [];
 let editingId = null;
+let editingExerciseId = null;
 
 const formError = document.getElementById("formError");
 
@@ -119,6 +133,18 @@ function renderWorkout() {
     }
 }
 
+function resetExerciseForm() {
+    editingExerciseId = null;
+
+    newExerciseName.value = "";
+    newMuscleGroup.value = "";
+
+    createExerciseButton.textContent = "Create exercise";
+    cancelExerciseEdit.hidden = true;
+    exerciseError.textContent = "";
+}
+cancelExerciseEdit.addEventListener("click", resetExerciseForm);
+
 async function loadBodyWeights() {
     const response = await fetch(
         `${API_URL}/body-weights`
@@ -184,6 +210,114 @@ function renderBodyWeights() {
 function cssVar(name) {
     return getComputedStyle(document.documentElement).getPropertyValue(name).trim();
 }
+
+function renderExerciseCatalog(exercises) {
+    exerciseCatalog.replaceChildren();
+
+    for (const exercise of exercises) {
+        const row = document.createElement("div");
+        row.className = "exercise-item";
+
+        const info = document.createElement("span");
+        info.textContent = `${exercise.name} — ${exercise.muscle_group}`;
+
+        const editButton = document.createElement("button");
+        editButton.textContent = "Edit";
+        editButton.addEventListener("click", function () {
+            editingExerciseId = exercise.id;
+
+            newExerciseName.value = exercise.name;
+            newMuscleGroup.value = exercise.muscle_group;
+
+            createExerciseButton.textContent = "Save changes";
+            cancelExerciseEdit.hidden = false;
+
+            newExerciseName.focus();
+        });
+
+        const deleteButton = document.createElement("button");
+        deleteButton.textContent = "Delete";
+
+        deleteButton.addEventListener("click", function () {
+            exerciseToDelete = exercise;
+
+            deleteModalMessage.textContent =
+                `Are you sure you want to delete "${exercise.name}"?`;
+
+            deleteModal.hidden = false;
+            confirmDeleteButton.focus();
+        });
+
+        row.append(info, editButton, deleteButton);
+        exerciseCatalog.appendChild(row);
+    }
+}
+
+toggleExerciseCatalog.addEventListener("click", function () {
+    const isHidden = exerciseCatalog.hidden;
+
+    exerciseCatalog.hidden = !isHidden;
+
+    toggleExerciseCatalog.textContent = isHidden
+        ? "Hide exercises"
+        : "Show exercises";
+
+    toggleExerciseCatalog.setAttribute(
+        "aria-expanded",
+        String(isHidden)
+    );
+});
+
+function closeDeleteModal() {
+    deleteModal.hidden = true;
+    exerciseToDelete = null;
+}
+
+deleteModal.addEventListener("click", function (event) {
+    if (event.target === deleteModal) {
+        closeDeleteModal();
+    }
+});
+
+document.addEventListener("keydown", function (event) {
+    if (event.key === "Escape" && !deleteModal.hidden) {
+        closeDeleteModal();
+    }
+});
+
+cancelDeleteButton.addEventListener("click", closeDeleteModal);
+
+confirmDeleteButton.addEventListener("click", async function () {
+    if (!exerciseToDelete) return;
+
+    const exerciseId = exerciseToDelete.id;
+    confirmDeleteButton.disabled = true;
+
+    try {
+        const response = await fetch(
+            `${API_URL}/exercises/${exerciseId}`,
+            { method: "DELETE" }
+        );
+
+        if (!response.ok) {
+            throw new Error(`HTTP ${response.status}`);
+        }
+
+        if (editingExerciseId === exerciseId) {
+            resetExerciseForm();
+        }
+
+        closeDeleteModal();
+        await loadExerciseCatalog();
+
+    } catch (error) {
+        console.error(error);
+        exerciseError.textContent = "Could not delete exercise";
+        closeDeleteModal();
+    } finally {
+        confirmDeleteButton.disabled = false;
+    }
+});
 
 function renderBodyWeightChart() {
     const labels = [];
@@ -420,5 +554,85 @@ addButton.addEventListener("click", async function () {
     formError.textContent = "";
     await loadWorkout();
 });
+
+async function loadExerciseCatalog() {
+    try {
+        const response = await fetch(`${API_URL}/exercises`);
+
+        if (!response.ok) {
+            throw new Error(`HTTP ${response.status}`);
+        }
+
+        const exercises = await response.json();
+        renderExerciseCatalog(exercises);
+
+        exerciseInput.innerHTML = '<option value="">Select exercise</option>';
+
+        for (const exercise of exercises) {
+            const option = document.createElement("option");
+
+            option.value = exercise.name;
+            option.textContent = exercise.name;
+
+            exerciseInput.appendChild(option);
+        }
+
+    } catch (error) {
+        console.error("Failed to load exercises:", error);
+    }
+}
+
+createExerciseButton.addEventListener("click", async function () {
+    exerciseError.textContent = "";
+
+    const name = newExerciseName.value.trim();
+    const muscleGroup = newMuscleGroup.value;
+
+    if (!name || !muscleGroup) {
+        exerciseError.textContent = "Fill in all fields";
+        return;
+    }
+
+    let url = `${API_URL}/exercises`;
+    let method = "POST";
+
+    if (editingExerciseId !== null) {
+        url = `${API_URL}/exercises/${editingExerciseId}`;
+        method = "PUT";
+    }
+
+    createExerciseButton.disabled = true;
+
+    try {
+        const response = await fetch(url, {
+            method: method,
+            headers: {
+                "Content-Type": "application/json"
+            },
+            body: JSON.stringify({
+                name: name,
+                muscle_group: muscleGroup
+            })
+        });
+
+        if (!response.ok) {
+            throw new Error(`HTTP ${response.status}`);
+        }
+
+        editingExerciseId = null;
+
+        resetExerciseForm();
+
+        await loadExerciseCatalog();
+
+    } catch (error) {
+        console.error(error);
+        exerciseError.textContent = "Could not save exercise";
+    } finally {
+        createExerciseButton.disabled = false;
+    }
+});
+
+loadExerciseCatalog();
 loadWorkout();
 loadBodyWeights();

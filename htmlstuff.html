@@ -24,17 +24,67 @@
                 <p>Add your first exercise</p>
 
                 <div class="form-card">
-                    <input id="exerciseInput" type="text" placeholder="Exercise" aria-label="Exercise">
-                    <input id="weightInput" type="number" placeholder="Weight, kg" aria-label="Weight, kg">
-                    <input id="repsInput" type="number" placeholder="Reps" aria-label="Reps">
+                    <div class="exercise-manager">
+                        <h2>Manage exercises</h2>
 
-                    <div class="form-actions">
-                        <button id="addButton">Add exercises</button>
+                        <div class="exercise-manager-fields">
+                            <input
+                                id="newExerciseName"
+                                type="text"
+                                placeholder="Exercise name"
+                            >
+
+                            <select id="newMuscleGroup">
+                                <option value="">Muscle group</option>
+                                <option value="Chest">Chest</option>
+                                <option value="Back">Back</option>
+                                <option value="Legs">Legs</option>
+                                <option value="Shoulders">Shoulders</option>
+                                <option value="Biceps">Biceps</option>
+                                <option value="Triceps">Triceps</option>
+                                <option value="Core">Core</option>
+                                <option value="Other">Other</option>
+                            </select>
+
+                            <button id="createExerciseButton" type="button">
+                                Create exercise
+                            </button>
+                            <button id="cancelExerciseEdit" type="button" hidden>
+                                Cancel
+                            </button>
+                        </div>
+
+                        <p id="exerciseError" class="error-message"></p>
+                        <button
+                            id="toggleExerciseCatalog"
+                            type="button"
+                            aria-expanded="false"
+                            aria-controls="exerciseCatalog"
+                        >
+                            Show exercises
+                        </button>
+
+                        <div id="exerciseCatalog" hidden></div>
+                    </div>
+
+                    <div class="workout-form">
+                        <h2>Log a set</h2>
+
+                        <div class="workout-fields">
+                            <select id="exerciseInput" aria-label="Exercise">
+                                <option value="">Select exercise</option>
+                            </select>
+
+                            <input id="weightInput" type="number" placeholder="Weight, kg">
+                            <input id="repsInput" type="number" placeholder="Reps">
+                        </div>
+
+                        <button id="addButton" type="button">Add set</button>
                         <button id="cancelButton" type="button">Cancel</button>
+                        <p id="formError" class="error-message"></p>
                     </div>
                 </div>
 
-                <p id="formError" class="error-message"></p>
                 <div id="exerciseContainer"></div>
             </section>
 
@@ -78,6 +128,19 @@
             </section>
 
         </main>
+        <div id="deleteModal" class="modal-overlay" hidden>
+            <div class="modal-content" role="dialog"
+                aria-modal="true" aria-labelledby="deleteModalTitle">
+
+                <h2 id="deleteModalTitle">Delete exercise?</h2>
+                <p id="deleteModalMessage"></p>
+
+                <div class="modal-actions">
+                    <button id="cancelDeleteButton" type="button">Cancel</button>
+                    <button id="confirmDeleteButton" type="button">Delete</button>
+                </div>
+            </div>
+        </div>
         <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
         <script src="script.js"></script>
     </body>
