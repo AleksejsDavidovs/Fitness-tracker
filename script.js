@@ -22,6 +22,7 @@ const deleteModal = document.getElementById("deleteModal");
 const deleteModalMessage = document.getElementById("deleteModalMessage");
 const cancelDeleteButton = document.getElementById("cancelDeleteButton");
 const confirmDeleteButton = document.getElementById("confirmDeleteButton");
+const workoutSessionSelect = document.getElementById("workoutSessionSelect");
 
 let exerciseToDelete = null;
 
@@ -636,3 +637,36 @@ createExerciseButton.addEventListener("click", async function () {
 loadExerciseCatalog();
 loadWorkout();
 loadBodyWeights();
+
+async function loadWorkoutSessions() {
+    try {
+        const response = await fetch(`${API_URL}/workout-sessions`);
+
+        if (!response.ok) {
+            throw new Error(`HTTP ${response.status}`);
+        }
+
+        const sessions = await response.json();
+
+        workoutSessionSelect.replaceChildren();
+
+        const defaultOption = document.createElement("option");
+        defaultOption.value = "";
+        defaultOption.textContent = "Select workout session";
+        workoutSessionSelect.appendChild(defaultOption);
+
+        for (const session of sessions) {
+            const option = document.createElement("option");
+
+            option.value = session.id;
+            option.textContent = session.name;
+
+            workoutSessionSelect.appendChild(option);
+        }
+
+    } catch (error) {
+        console.error("Could not load workout sessions:", error);
+    }
+}
+
+loadWorkoutSessions();
