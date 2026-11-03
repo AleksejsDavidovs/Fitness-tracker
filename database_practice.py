@@ -3,7 +3,13 @@ import psycopg
 DATABASE_PATH = os.getenv("DATABASE_PATH", "practice.db")
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
-from models import ExerciseCreate, SetCreate, BodyWeightCreate
+from models import (
+    ExerciseCreate,
+    SetCreate,
+    BodyWeightCreate,
+    WorkoutSessionCreate,
+    BulkSetCreate
+)
 from database import get_db_connection
 
 app = FastAPI()
@@ -43,6 +49,67 @@ def create_set(set_data: SetCreate):
             }
     finally:
          connection.close()
+
+@app.post("/sets/bulk", status_code=201)
+def create_bulk_sets(data: BulkSetCreate):
+    connection = get_db_connection()
+
+    try:
+        with connection.cursor() as cursor:
+
+            # Проверяем, существует ли тренировка
+            cursor.execute("""
+                SELECT id
+                FROM workout_sessions
+                WHERE id = %s
+            """, (data.session_id,))
+
+            if cursor.fetchone() is None:
+                raise HTTPException(
+                    status_code=404,
+                    detail="Workout session not found"
+                )
+
+            # Создаём нужное количество подходов
+            created_ids = []
+
+            for _ in range(data.sets_count):
+                cursor.execute("""
+                    INSERT INTO sets (
+                        session_id,
+                        exercise,
+                        weight,
+                        reps,
+                        performed_at
+                    )
+                    VALUES (%s, %s, %s, %s, CURRENT_TIMESTAMP)
+                    RETURNING id
+                """, (
+                    data.session_id,
+                    data.exercise.strip(),
+                    data.weight,
+                    data.reps
+                ))
+
+                created_ids.append(cursor.fetchone()[0])
+
+        connection.commit()
+
+        return {
+            "session_id": data.session_id,
+            "exercise": data.exercise.strip(),
+            "weight": data.weight,
+            "reps": data.reps,
+            "sets_count": len(created_ids),
+            "created_ids": created_ids
+        }
+
+    except Exception:
+        connection.rollback()
+        raise
+
+    finally:
+        connection.close()
 
 
 @app.post("/body-weights", status_code=201)
@@ -335,6 +402,72 @@ def delete_exercise(exercise_id: int):
         connection.commit()
 
         return {"deleted_id": exercise_id}
+
+    finally:
+        connection.close()
+
+
+@app.post("/workout-sessions", status_code=201)
+def create_workout_session(session: WorkoutSessionCreate):
+    name = session.name.strip()
+
+    if not name:
+        raise HTTPException(
+            status_code=422,
+            detail="Workout name cannot be empty"
+        )
+
+    connection = get_db_connection()
+
+    try:
+        with connection.cursor() as cursor:
+            cursor.execute("""
+                INSERT INTO workout_sessions (name)
+                VALUES (%s)
+                RETURNING id, name, started_at
+            """, (name,))
+
+            row = cursor.fetchone()
+
+        connection.commit()
+
+        return {
+            "id": row[0],
+            "name": row[1],
+            "started_at": row[2].isoformat()
+        }
+
+    except Exception:
+        connection.rollback()
+        raise
+
+    finally:
+        connection.close()
+
+@app.get("/workout-sessions")
+def get_workout_sessions():
+    connection = get_db_connection()
+
+    try:
+        with connection.cursor() as cursor:
+            cursor.execute("""
+                SELECT id, name, started_at
+                FROM workout_sessions
+                ORDER BY started_at DESC, id DESC
+            """)
+
+            rows = cursor.fetchall()
+
+        sessions = []
+
+        for row in rows:
+            sessions.append({
+                "id": row[0],
+                "name": row[1],
+                "started_at": row[2].isoformat()
+            })
+
+        return sessions
 
     finally:
         connection.close()
