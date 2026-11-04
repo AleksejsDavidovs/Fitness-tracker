@@ -1,9 +1,21 @@
-.DS_Store
-__pycache__/
-*.pyc
+# Python
 .venv/
-.env
-data/
+__pycache__/
+*.py[cod]
+
+# Local databases
 *.db
-.pytest_cache/
-.hallmark/
+*.sqlite
+*.sqlite3
+
+# Backups
+*.bak
+*.sql
+
+# Environment and secrets
+.env
+.env.*
+!.env.example
+
+# Editor and OS
+.DS_Store

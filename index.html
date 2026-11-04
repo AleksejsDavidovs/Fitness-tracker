@@ -71,6 +71,20 @@
                         <h2>Log a set</h2>
 
                         <div class="workout-fields">
+                            <div class="session-create">
+                                <input
+                                    id="newSessionName"
+                                    type="text"
+                                    placeholder="Workout name, e.g. Upper Body"
+                                    aria-label="Workout name"
+                                >
+
+                                <button id="createSessionButton" type="button">
+                                    Create workout
+                                </button>
+                            </div>
+
+                            <p id="sessionError" class="error-message"></p>
                             <select id="workoutSessionSelect">
                                 <option value="">Select workout session</option>
                             </select>

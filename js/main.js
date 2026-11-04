@@ -2,7 +2,11 @@ import { initNavigation } from "./navigation.js";
 import { initExerciseCatalog } from "./exercises.js";
 import { initWorkouts } from "./workouts.js";
 import { initStatistics } from "./statistics.js";
-import { loadWorkoutSessions } from "./sessions.js";
+import {
+    loadWorkoutSessions,
+    initSessionCreation
+} from "./sessions.js";
+
 
 const exerciseInput = document.getElementById("exerciseInput");
 
@@ -35,3 +39,4 @@ initWorkouts(function (workout) {
 });
 
 loadWorkoutSessions();
+initSessionCreation();
